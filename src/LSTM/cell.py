@@ -6,7 +6,7 @@ class Cell:
     def __init__(self):
         return
 
-    def forward(x, activ_prev, context_prev, weights, biases):
+    def forward(self, x, activ_prev, context_prev, weights, biases):
         X = np.concatenate([activ_prev, x], axis=0)
 
         forget_gate = expit((weights['forget'] @ X) + biases['forget'])
@@ -14,10 +14,10 @@ class Cell:
         out_gate = expit((weights['output'] @ X) + biases['output'])
         candidate = np.tanh((weights['candidate'] @ X) + biases['candidate'])
         context = (forget_gate * context_prev) + (update_gate * candidate)
-        activations = out_gate * np.tanh(context)
+        activation = out_gate * np.tanh(context)
 
         cache = {
-            "activations": activations,
+            "activation": activation,
             "context": context,
             "activ_prev": activ_prev,
             "context_prev": context_prev,
@@ -30,10 +30,10 @@ class Cell:
             "biases": biases
         }
 
-        return activations, context, cache
+        return activation, context, cache
 
-    def backprop(dactivations, dcontext, cache):
-        activations = cache['activations']
+    def backprop(self, dactivation, dcontext, cache):
+        activation = cache['activation']
         context = cache['context']
         activ_prev = cache['activ_prev']
         context_prev = cache['context_prev']
@@ -44,24 +44,24 @@ class Cell:
         x = cache['input']
         weights = cache['weights']
 
-        out_len = activations.shape[0]
+        out_len = activation.shape[0]
 
         # Gradients for LSTM cell gates
-        dout_gate = dactivations * np.tanh(context) * out_gate * (1 - out_gate)
+        dout_gate = dactivation * np.tanh(context) * out_gate * (1 - out_gate)
 
         dupdate_gate = (dcontext * candidate +
                         out_gate * (1 - np.square(np.tanh(context))) *
-                        candidate * dactivations) * update_gate * \
+                        candidate * dactivation) * update_gate * \
             (1 - update_gate)
 
         dforget_gate = (dcontext * context_prev +
                         out_gate * (1 - np.square(np.tanh(context))) *
-                        context_prev * dactivations) * forget_gate * \
+                        context_prev * dactivation) * forget_gate * \
             (1 - forget_gate)
 
         dcandidate = (dcontext * update_gate +
                       out_gate * (1 - np.square(np.tanh(context))) *
-                      update_gate * dactivations) * \
+                      update_gate * dactivation) * \
             (1 - np.square(candidate))
 
         X = np.concatenate([activ_prev, x], axis=0)
@@ -76,7 +76,7 @@ class Cell:
         dW_candidate = dcandidate @ X.T
         db_candidate = np.sum(dcandidate, axis=1, keepdims=True)
 
-        # Gradients for previous time-step activations
+        # Gradients for previous time-step activation
         dactiv_prev = (weights['forget'][:, :out_len].T @ dforget_gate) + \
             (weights['update'][:, :out_len].T @ dupdate_gate) + \
             (weights['candidate'][:, :out_len].T @ dcandidate) + \
@@ -84,7 +84,7 @@ class Cell:
 
         dcontext_prev = dcontext*forget_gate + \
             out_gate*(1 - np.square(np.tanh(context))) * forget_gate * \
-            dactivations
+            dactivation
 
         dx = (weights['forget'][:, out_len:].T @ dforget_gate) +\
             (weights['update'][:, out_len:].T @ dupdate_gate) +\
