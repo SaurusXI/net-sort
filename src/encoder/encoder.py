@@ -44,7 +44,7 @@ class Encoder:
         }
 
     def forward(self, x):
-        timesteps = x.shape[0]
+        timesteps = x.shape[1]
         self.activations = np.zeros([CONTEXT_LEN, 1, timesteps])
         self.contexts = self.activations
 
@@ -61,4 +61,22 @@ class Encoder:
 
         self.input = x
 
-    def backprop(self, dactivation):
+    def backprop(self, dactivations):
+        timesteps = self.input.shape[1]
+
+        for t in reversed(range(timesteps)):
+            grad = self.cell.backprop(
+                dactivations[:, :, t],
+                self.caches[t]
+            )
+            self.update_grads(grad)
+
+    def update_grads(self, grad):
+        self.gradients['weights_forget'] += grad['weights_forget']
+        self.gradients['weights_update'] += grad['weights_update']
+        self.gradients['weights_output'] += grad['weights_output']
+        self.gradients['weights_candidate'] += grad['weights_candidate']
+        self.gradients['bias_forget'] += grad['bias_forget']
+        self.gradients['bias_update'] += grad['bias_update']
+        self.gradients['bias_output'] += grad['bias_output']
+        self.gradients['bias_candidate'] += grad['bias_candidate']
