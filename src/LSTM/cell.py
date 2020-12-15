@@ -32,7 +32,7 @@ class Cell:
 
         return activation, context, cache
 
-    def backprop(self, dactivation, dcontext, cache):
+    def backprop(self, dactivation, cache):
         activation = cache['activation']
         context = cache['context']
         activ_prev = cache['activ_prev']
@@ -47,6 +47,7 @@ class Cell:
         out_len = activation.shape[0]
 
         # Gradients for LSTM cell gates
+        dcontext = dactivation * out_gate * (1 - np.square(np.tanh(context)))
         dout_gate = dactivation * np.tanh(context) * out_gate * (1 - out_gate)
 
         dupdate_gate = (dcontext * candidate +
