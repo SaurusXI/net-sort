@@ -2,7 +2,7 @@ import numpy as np
 from ..LSTM.cell import Cell
 
 
-CONTEXT_LEN = 64
+CONTEXT_LEN = 256
 
 
 class Encoder:
@@ -28,6 +28,8 @@ class Encoder:
         self.caches = []
         self.input = []
         self.a0 = np.zeros([CONTEXT_LEN, 1])
+        self.contexts = None
+        self.activations = None
 
         # Initialize stuff to store during backprop
         weights_shape = [CONTEXT_LEN, CONTEXT_LEN + input_len]
@@ -61,14 +63,15 @@ class Encoder:
 
         self.input = x
 
-    def backprop(self, dactivations):
+    def backprop(self, dactivation):
         timesteps = self.input.shape[1]
 
         for t in reversed(range(timesteps)):
             grad = self.cell.backprop(
-                dactivations[:, :, t],
+                dactivation,
                 self.caches[t]
             )
+            dactivation = grad['activ_prev']
             self.update_grads(grad)
 
     def update_grads(self, grad):
