@@ -47,6 +47,7 @@ class Decoder:
     def forward(self, encoded_activation, encoded_context, timesteps):
         self.activations = np.zeros([CONTEXT_LEN, 1, timesteps])
         self.contexts = self.activations
+        self.timesteps = timesteps
 
         activation = encoded_activation
         context = encoded_context
@@ -61,3 +62,30 @@ class Decoder:
 
         self.input_activation = encoded_activation
         self.input_context = encoded_context
+
+    def backprop(self, dcontexts):
+        dactivation = np.zeros([CONTEXT_LEN, 1])
+
+        for t in reversed(range(self.timesteps)):
+            grad = self.cell.backprop(
+                dactivation,
+                dcontexts[:, :, t],
+                self.caches[t]
+            )
+            dactivation = grad['activ_prev']
+            self.update_grads(grad)
+
+        return dactivation
+
+    def update_grads(self, grad):
+        self.gradients['weights_forget'] += grad['weights_forget']
+        self.gradients['weights_update'] += grad['weights_update']
+        self.gradients['weights_output'] += grad['weights_output']
+        self.gradients['weights_candidate'] += grad['weights_candidate']
+        self.gradients['bias_forget'] += grad['bias_forget']
+        self.gradients['bias_update'] += grad['bias_update']
+        self.gradients['bias_output'] += grad['bias_output']
+        self.gradients['bias_candidate'] += grad['bias_candidate']
+
+    def get_activations(self):
+        return self.activations
