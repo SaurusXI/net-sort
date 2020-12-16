@@ -62,6 +62,10 @@ class Encoder:
             self.caches.append(cache)
 
         self.input = x
+        output_activation = self.activations[:, :, timesteps-1]
+        output_context = self.contexts[:, :, timesteps-1]
+
+        return output_activation, output_context
 
     def backprop(self, dactivation):
         timesteps = self.input.shape[1]
