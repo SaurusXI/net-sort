@@ -6,8 +6,20 @@ class Cell:
     def __init__(self):
         return
 
-    def forward(self, x, activ_prev, context_prev, weights, biases):
-        X = np.concatenate([activ_prev, x], axis=0)
+    def forward(
+            self,
+            x,
+            activ_prev,
+            context_prev,
+            weights,
+            biases,
+            take_input=True):
+
+        if take_input:
+            X = np.concatenate([activ_prev, x], axis=0)
+        else:
+            x = activ_prev
+            X = x
 
         forget_gate = expit((weights['forget'] @ X) + biases['forget'])
         update_gate = expit((weights['update'] @ X) + biases['update'])
