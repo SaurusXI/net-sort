@@ -117,3 +117,22 @@ class PtrNet:
             dactivations_enc, self.gradients['encoder_activations']
         )
 
+    def apply_gradients(self, learning_rate=1e-3):
+        self.weights['encoder'] -= learning_rate * \
+            self.gradients['encoder_weight']
+        self.weights['decoder'] -= learning_rate * \
+            self.gradients['decoder_weight']
+        self.weights['reduction'] -= learning_rate * \
+            self.gradients['reduction_weight']
+
+        self.decoder.apply_gradients(learning_rate)
+        self.encoder.apply_gradients(learning_rate)
+
+    def train(self, X, y, n_epochs):
+
+        for _ in range(n_epochs):
+            for i, x in enumerate(X):
+                self.forward(x)
+                self.compute_loss(y[i])
+                self.backprop()
+                self.apply_gradients()
