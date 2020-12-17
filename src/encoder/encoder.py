@@ -90,4 +90,14 @@ class Encoder:
         self.gradients['bias_candidate'] += grad['bias_candidate']
 
     def get_activations(self):
-        return self.activations
+        return self.contexts
+
+    def apply_gradients(self, learning_rate=1e-3):
+        self.weights['forget'] -= learning_rate * self.gradients['weights_forget']
+        self.weights['update'] -= learning_rate * self.gradients['weights_update']
+        self.weights['output'] -= learning_rate * self.gradients['weights_output']
+        self.weights['candidate'] -= learning_rate * self.gradients['candidate']
+        self.biases['forget'] -= learning_rate * self.gradients['bias_forget']
+        self.biases['update'] -= learning_rate * self.gradients['bias_update']
+        self.biases['output'] -= learning_rate * self.gradients['bias_output']
+        self.biases['candidate'] -= learning_rate * self.gradients['bias_candidate']
