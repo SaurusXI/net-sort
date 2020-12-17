@@ -1,5 +1,5 @@
 import numpy as np
-from ..LSTM.cell import Cell
+from LSTM.cell import Cell
 
 
 CONTEXT_LEN = 256
@@ -46,7 +46,7 @@ class Encoder:
         }
 
     def forward(self, x):
-        timesteps = x.shape[1]
+        timesteps = x.shape[0]
         self.activations = np.zeros([CONTEXT_LEN, 1, timesteps])
         self.contexts = self.activations
 
@@ -68,7 +68,7 @@ class Encoder:
         return output_activation, output_context
 
     def backprop(self, dactivation, dcontexts):
-        timesteps = self.input.shape[1]
+        timesteps = self.input.shape[0]
 
         for t in reversed(range(timesteps)):
             grad = self.cell.backprop(

@@ -1,6 +1,6 @@
-from ..decoder.decoder import Decoder
-from ..encoder.encoder import Encoder
-from utils import OHE, cross_entropy
+from decoder.decoder import Decoder
+from encoder.encoder import Encoder
+from model.utils import OHE, cross_entropy
 import numpy as np
 from scipy.special import softmax
 
@@ -51,19 +51,25 @@ class PtrNet:
         self.decoder_states = self.decoder.get_activations()
 
         self.x = x
-        self.y = np.array([])
+        self.y = []
 
         for i in range(self.timesteps):
-            di = self.decoder_states[i]
-            ui = np.array([])
+            di = self.decoder_states[:, :, i]
+            ui = []
             for j in range(self.timesteps):
-                ej = self.encoder_states[j]
+                ej = self.encoder_states[:, :, j]
                 z = (self.weights['encoder'] @ ej) + \
                     (self.weights['decoder'] @ di)
                 uij = self.weights['reduction'] @ np.tanh(z)
                 ui.append(uij[0])
 
-            self.y.append(softmax(ui))
+            self.y.append(
+                softmax(np.array(ui))
+            )
+
+        self.y = np.array(self.y)
+
+        return self.y
 
     def output(self):
         indices = np.argmax(self.y, axis=1)

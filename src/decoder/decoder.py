@@ -1,5 +1,5 @@
 import numpy as np
-from ..LSTM.cell import Cell
+from LSTM.cell import Cell
 
 
 CONTEXT_LEN = 256

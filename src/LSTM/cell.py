@@ -16,7 +16,7 @@ class Cell:
             take_input=True):
 
         if take_input:
-            X = np.concatenate([activ_prev, x], axis=0)
+            X = np.concatenate([activ_prev, x.reshape((1, 1))], axis=0)
         else:
             x = activ_prev
             X = x
