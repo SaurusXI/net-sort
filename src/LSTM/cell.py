@@ -42,9 +42,13 @@ class Cell:
             "biases": biases
         }
 
+        print(f'forget_gate: {forget_gate.shape}')
+        print(f'X: {X.shape}')
+        print(f'weights out: {weights["output"].shape}')
+
         return activation, context, cache
 
-    def backprop(self, dactivation, dcontext, cache):
+    def backprop(self, dactivation, dcontext, cache, take_input=True):
         activation = cache['activation']
         context = cache['context']
         activ_prev = cache['activ_prev']
@@ -77,7 +81,15 @@ class Cell:
                       update_gate * dactivation) * \
             (1 - np.square(candidate))
 
-        X = np.concatenate([activ_prev, x], axis=0)
+        if take_input:
+            print(f'xShape {x}')
+            X = np.concatenate([activ_prev, x.reshape((1, 1))], axis=0)
+        else:
+            X = activ_prev
+
+        print(dcontext.shape)
+        # print(dout_gate.shape)
+        # print(X.shape)
 
         # Gradients for weights and biases
         dW_out = dout_gate @ X.T
