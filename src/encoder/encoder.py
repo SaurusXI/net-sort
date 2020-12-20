@@ -68,12 +68,13 @@ class Encoder:
         return output_activation, output_context
 
     def backprop(self, dactivation, dcontexts):
+        print(dcontexts.shape)
         timesteps = self.input.shape[0]
 
         for t in reversed(range(timesteps)):
             grad = self.cell.backprop(
                 dactivation,
-                dcontexts[:, :, t],
+                dcontexts[t, :, :],
                 self.caches[t]
             )
             dactivation = grad['activ_prev']
@@ -96,7 +97,7 @@ class Encoder:
         self.weights['forget'] -= learning_rate * self.gradients['weights_forget']
         self.weights['update'] -= learning_rate * self.gradients['weights_update']
         self.weights['output'] -= learning_rate * self.gradients['weights_output']
-        self.weights['candidate'] -= learning_rate * self.gradients['candidate']
+        self.weights['candidate'] -= learning_rate * self.gradients['weights_candidate']
         self.biases['forget'] -= learning_rate * self.gradients['bias_forget']
         self.biases['update'] -= learning_rate * self.gradients['bias_update']
         self.biases['output'] -= learning_rate * self.gradients['bias_output']
