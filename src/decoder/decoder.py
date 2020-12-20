@@ -69,8 +69,9 @@ class Decoder:
         for t in reversed(range(self.timesteps)):
             grad = self.cell.backprop(
                 dactivation,
-                dcontexts[:, :, t],
-                self.caches[t]
+                dcontexts[t, :, :],
+                self.caches[t],
+                False
             )
             dactivation = grad['activ_prev']
             self.update_grads(grad)
@@ -94,7 +95,7 @@ class Decoder:
         self.weights['forget'] -= learning_rate * self.gradients['weights_forget']
         self.weights['update'] -= learning_rate * self.gradients['weights_update']
         self.weights['output'] -= learning_rate * self.gradients['weights_output']
-        self.weights['candidate'] -= learning_rate * self.gradients['candidate']
+        self.weights['candidate'] -= learning_rate * self.gradients['weights_candidate']
         self.biases['forget'] -= learning_rate * self.gradients['bias_forget']
         self.biases['update'] -= learning_rate * self.gradients['bias_update']
         self.biases['output'] -= learning_rate * self.gradients['bias_output']
