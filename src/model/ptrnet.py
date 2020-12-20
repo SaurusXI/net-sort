@@ -61,6 +61,8 @@ class PtrNet:
                 z = (self.weights['encoder'] @ ej) + \
                     (self.weights['decoder'] @ di)
                 uij = self.weights['reduction'] @ np.tanh(z)
+                # print(np.tanh(z))
+                # print('next')
                 ui.append(uij[0])
 
             self.y.append(
@@ -85,36 +87,68 @@ class PtrNet:
             ))
         )
 
-        self.losses = np.array([])
+        self.losses = []
 
         for i, label in enumerate(self.labels):
             self.losses.append(
                 cross_entropy(self.y[i], label)
             )
 
+        self.losses = np.array(self.losses)
         self.Loss = np.sum(self.losses)
 
     def backprop(self):
-        self.gradients['u'] = (self.y - self.labels) / self.timesteps
+        self.gradients['u'] = (self.y - self.labels)[:, :, 0] / self.timesteps
+
+        # print(self.gradients['reduction_weight'].shape)
+        # print((self.gradients['u'][0][0] * np.square(
+        #         np.tanh(
+        #             self.weights['encoder'] @
+        #             self.encoder_states[:, :, 0] +
+        #             self.weights['decoder'] @
+        #             self.decoder_states[:, :, 0]
+        #         )
+        #     )
+        # ).shape)
 
         # Compute gradients
         for i in range(self.timesteps):
+            dej = []
+            ddi = []
             for j in range(self.timesteps):
                 duij = self.gradients['u'][i][j]
-                self.gradients['encoder_weight'] += duij * self.weights['reduction'].T @ ((1 - np.square(np.tanh(self.weights['encoder'] @ self.encoder_states[j] + self.weights['decoder'] @ self.decoder_states[i])).T * self.encoder_states[j].T))
-                self.gradients['decoder_weight'] += duij * self.weights['reduction'].T @ ((1 - np.square(np.tanh(self.weights['encoder'] @ self.encoder_states[j] + self.weights['decoder'] @ self.decoder_states[i])).T * self.decoder_states[i].T))
-                self.gradients['encoder_activations'].append(
-                    duij * self.weights['reduction'].T @ ((1 - np.square(np.tanh(self.weights['encoder'] @ self.encoder_states[j] + self.weights['decoder'] @ self.decoder_states[i])).T) @ self.weights['encoder'].T)
+                z = self.weights['encoder'] @ self.encoder_states[:, :, j] + \
+                    self.weights['decoder'] @ self.decoder_states[:, :, i]
+                self.gradients['encoder_weight'] += (duij *
+                    self.weights['reduction'].T @ ((
+                            1 - np.square(np.tanh(z)).T *
+                            self.encoder_states[:, :, j].T
+                        )
+                    )
                 )
-                self.gradients['decoder_activations'].append(
-                    duij * self.weights['reduction'].T @ ((1 - np.square(np.tanh(self.weights['encoder'] @ self.encoder_states[j] + self.weights['decoder'] @ self.decoder_states[i])).T) @ self.weights['decoder'].T)
-                )
-                self.gradients['reduction_weight'] += duij * np.tanh(self.weights['encoder'] @ self.encoder_states[j] + self.weights['decoder'] @ self.decoder_states[i])
+                self.gradients['decoder_weight'] += duij * self.weights['reduction'].T @ ((1 - np.square(np.tanh(z)).T * self.decoder_states[:, :, i].T))
+                deij = duij * self.weights['encoder'] @ (self.weights['reduction'].T * (1 - np.square(np.tanh(z))))
+                ddij = duij * self.weights['decoder'] @ (self.weights['reduction'].T * (1 - np.square(np.tanh(z))))
+                dej.append(deij)
+                ddi.append(ddij)
+
+                self.gradients['reduction_weight'] += duij * np.tanh(z).T
+
+            self.gradients['encoder_activations'].append(
+                np.mean(dej, axis=0)
+            )
+            self.gradients['decoder_activations'].append(
+                np.mean(ddi, axis=0)
+            )
 
         # Normalize
         self.gradients['encoder_weight'] /= (self.timesteps ** 2)
         self.gradients['decoder_weight'] /= (self.timesteps ** 2)
 
+        self.gradients['encoder_activations'] = np.array(self.gradients['encoder_activations'])
+        self.gradients['decoder_activations'] = np.array(self.gradients['decoder_activations'])
+
+        # print(f'adfadfa {self.gradients["encoder_activations"].shape}')
         # Backprop encoder and decoder
         dactivations_enc = self.decoder.backprop(
             self.gradients['decoder_activations']
@@ -122,6 +156,9 @@ class PtrNet:
         self.encoder.backprop(
             dactivations_enc, self.gradients['encoder_activations']
         )
+
+        self.gradients['encoder_activations'] = []
+        self.gradients['decoder_activations'] = []
 
     def apply_gradients(self, learning_rate=1e-3):
         self.weights['encoder'] -= learning_rate * \
