@@ -65,20 +65,23 @@ class Decoder:
 
         return self.activations
 
-    def backprop(self, dcontexts):
-        dactivation = np.zeros([CONTEXT_LEN, 1])
+    def backprop(self, dactivations):
+        dcontext = np.zeros([CONTEXT_LEN, 1])
+        dactivation_future = dcontext
 
         for t in reversed(range(self.timesteps)):
+            dactivation = dactivation_future + dactivations[t, :, :]
             grad = self.cell.backprop(
                 dactivation,
-                dcontexts[t, :, :],
+                dcontext,
                 self.caches[t],
                 False
             )
-            dactivation = grad['activ_prev']
+            dactivation_future = grad['activ_prev']
+            dcontext = grad['context_prev']
             self.update_grads(grad)
 
-        return dactivation
+        return dactivation_future, dcontext
 
     def update_grads(self, grad):
         self.gradients['weights_forget'] += grad['weights_forget']

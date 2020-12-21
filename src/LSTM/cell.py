@@ -63,23 +63,26 @@ class Cell:
         out_len = activation.shape[0]
 
         # Gradients for LSTM cell gates
-        # dcontext = dactivation * out_gate * (1 - np.square(np.tanh(context)))
+        dcontext += dactivation * out_gate * (1 - np.square(np.tanh(context)))
         dout_gate = dactivation * np.tanh(context) * out_gate * (1 - out_gate)
+        dforget_gate = (dcontext * context_prev) * forget_gate * (1 - forget_gate)
+        dupdate_gate = (dcontext * candidate) * update_gate * (1 - update_gate)
+        dcandidate = (dcontext * update_gate) * (1 - np.square(np.tanh(context)))
+        
+        # dupdate_gate = (dcontext * candidate +
+        #                 out_gate * (1 - np.square(np.tanh(context))) *
+        #                 candidate * dactivation) * update_gate * \
+        #     (1 - update_gate)
 
-        dupdate_gate = (dcontext * candidate +
-                        out_gate * (1 - np.square(np.tanh(context))) *
-                        candidate * dactivation) * update_gate * \
-            (1 - update_gate)
+        # dforget_gate = (dcontext * context_prev +
+        #                 out_gate * (1 - np.square(np.tanh(context))) *
+        #                 context_prev * dactivation) * forget_gate * \
+        #     (1 - forget_gate)
 
-        dforget_gate = (dcontext * context_prev +
-                        out_gate * (1 - np.square(np.tanh(context))) *
-                        context_prev * dactivation) * forget_gate * \
-            (1 - forget_gate)
-
-        dcandidate = (dcontext * update_gate +
-                      out_gate * (1 - np.square(np.tanh(context))) *
-                      update_gate * dactivation) * \
-            (1 - np.square(candidate))
+        # dcandidate = (dcontext * update_gate +
+        #               out_gate * (1 - np.square(np.tanh(context))) *
+        #               update_gate * dactivation) * \
+        #     (1 - np.square(candidate))
 
         if take_input:
             # print(f'xShape {x}')

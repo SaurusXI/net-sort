@@ -68,17 +68,18 @@ class Encoder:
 
         return output_activation, output_context
 
-    def backprop(self, dactivation, dcontexts):
+    def backprop(self, dactivation, dcontext):
         # print(dcontexts.shape)
         timesteps = self.input.shape[0]
 
         for t in reversed(range(timesteps)):
             grad = self.cell.backprop(
                 dactivation,
-                dcontexts[t, :, :],
+                dcontext,
                 self.caches[t]
             )
             dactivation = grad['activ_prev']
+            dcontext = grad['context_prev']
             self.update_grads(grad)
 
     def update_grads(self, grad):
