@@ -11,12 +11,12 @@ class Encoder:
         self.input_len = input_len
         # Initialize weights and biases
         self.weights = {
-            'update': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len]),
-            'forget': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len]),
+            'update': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len]) / 1e4,
+            'forget': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len]) / 1e4,
             'candidate': np.random.random(
                 [CONTEXT_LEN, CONTEXT_LEN + input_len]
-            ),
-            'output': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len])
+            ) / 1e4,
+            'output': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len]) / 1e4
         }
         self.biases = {
             'update': np.random.random([CONTEXT_LEN, 1]),
@@ -64,16 +64,15 @@ class Encoder:
             self.caches.append(cache)
 
         self.input = x
-        output_activation = self.activations[:, :, timesteps-1]
-        output_context = self.contexts[:, :, timesteps-1]
+        return self.activations, self.contexts
 
-        return output_activation, output_context
-
-    def backprop(self, dactivation, dcontext):
-        # print(dcontexts.shape)
+    def backprop(self, dactivations, dcontext):
+        # print('backproping')
         timesteps = self.input.shape[0]
+        dactivation = 0
 
         for t in reversed(range(timesteps)):
+            dactivation += dactivations[t, :, :]
             grad = self.cell.backprop(
                 dactivation,
                 dcontext,
@@ -83,7 +82,7 @@ class Encoder:
             dcontext = grad['context_prev']
             self.update_grads(grad)
 
-    def update_grads(self, grad):
+    def update_grads(self, grad, clipping=True):
         self.gradients['weights_forget'] += grad['weights_forget']
         self.gradients['weights_update'] += grad['weights_update']
         self.gradients['weights_output'] += grad['weights_output']
@@ -93,8 +92,17 @@ class Encoder:
         self.gradients['bias_output'] += grad['bias_output']
         self.gradients['bias_candidate'] += grad['bias_candidate']
 
+        if clipping:
+            self.clip_grads
+
     def get_activations(self):
         return self.contexts
+
+    def clip_grads(self):
+        for k, v in self.gradients.items():
+            np.clip(
+                v, 1e-3, 1e3, out=self.gradients[k]
+            )
 
     def reset_gradients(self):
         weights_shape = [CONTEXT_LEN, CONTEXT_LEN + self.input_len]
