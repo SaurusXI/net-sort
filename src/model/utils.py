@@ -9,7 +9,7 @@ def OHE(val, len_output):
 
 
 def cross_entropy(predictions, targets, epsilon=1e-12):
-    return entropy(targets) + entropy(targets, predictions)
+    return entropy(predictions) + entropy(predictions, targets)
 
 
 def relu(x):
