@@ -44,13 +44,13 @@ class Decoder:
             'bias_candidate': np.zeros(bias_shape),
         }
 
-    def forward(self, encoded_activation, encoded_context, timesteps):
+    def forward(self, encoded_activations, encoded_contexts, timesteps):
         self.activations = np.zeros([CONTEXT_LEN, 1, timesteps])
         self.contexts = self.activations
         self.timesteps = timesteps
 
-        activation = encoded_activation
-        context = encoded_context
+        activation = encoded_activations
+        context = encoded_contexts
 
         for t in range(timesteps):
             activation, context, cache = self.cell.forward(
@@ -60,8 +60,8 @@ class Decoder:
             self.contexts[:, :, t] = context
             self.caches.append(cache)
 
-        self.input_activation = encoded_activation
-        self.input_context = encoded_context
+        self.input_activation = encoded_activations
+        self.input_context = encoded_contexts
 
         return self.activations
 
@@ -92,6 +92,20 @@ class Decoder:
         self.gradients['bias_update'] += grad['bias_update']
         self.gradients['bias_output'] += grad['bias_output']
         self.gradients['bias_candidate'] += grad['bias_candidate']
+
+    def reset_gradients(self):
+        weights_shape = [CONTEXT_LEN, CONTEXT_LEN]
+        bias_shape = [CONTEXT_LEN, 1]
+        self.gradients = {
+            'weights_forget': np.zeros(weights_shape),
+            'weights_update': np.zeros(weights_shape),
+            'weights_output': np.zeros(weights_shape),
+            'weights_candidate': np.zeros(weights_shape),
+            'bias_forget': np.zeros(bias_shape),
+            'bias_update': np.zeros(bias_shape),
+            'bias_output': np.zeros(bias_shape),
+            'bias_candidate': np.zeros(bias_shape),
+        }
 
     def get_activations(self):
         return self.contexts

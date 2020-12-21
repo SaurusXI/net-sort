@@ -8,6 +8,7 @@ CONTEXT_LEN = 256
 class Encoder:
     def __init__(self, input_len):
         self.cell = Cell()
+        self.input_len = input_len
         # Initialize weights and biases
         self.weights = {
             'update': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len]),
@@ -94,6 +95,20 @@ class Encoder:
 
     def get_activations(self):
         return self.contexts
+
+    def reset_gradients(self):
+        weights_shape = [CONTEXT_LEN, CONTEXT_LEN + self.input_len]
+        bias_shape = [CONTEXT_LEN, 1]
+        self.gradients = {
+            'weights_forget': np.zeros(weights_shape),
+            'weights_update': np.zeros(weights_shape),
+            'weights_output': np.zeros(weights_shape),
+            'weights_candidate': np.zeros(weights_shape),
+            'bias_forget': np.zeros(bias_shape),
+            'bias_update': np.zeros(bias_shape),
+            'bias_output': np.zeros(bias_shape),
+            'bias_candidate': np.zeros(bias_shape),
+        }
 
     def apply_gradients(self, learning_rate=1e-3):
         self.weights['forget'] -= learning_rate * self.gradients['weights_forget']

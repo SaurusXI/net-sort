@@ -82,14 +82,27 @@ class Seq2Seq:
         self.encoder.apply_gradients(learning_rate)
         self.decoder.apply_gradients(learning_rate)
 
+    def reset_gradients(self):
+        self.gradients = {
+            'output': None,
+            'weights_output': np.zeros([1, CONTEXT_LEN]),
+            'bias_output': 0,
+            'decoder_activation': []
+        }
+        self.encoder.reset_gradients()
+        self.decoder.reset_gradients()
+
     def train(self, X, y, n_epochs):
 
         for k in range(n_epochs):
+            loss = 0
             for i, x in enumerate(X):
                 self.forward(x)
-                loss = self.compute_loss(y[i])
+                loss += self.compute_loss(y[i])
+                print(f'Loss for sample {i} - {loss}')
                 self.backprop()
                 self.apply_gradients()
+            self.reset_gradients()
             print(f'Loss at epoch {k} - {loss}')
 
     def output(self):
