@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats import entropy
 
 
 def OHE(val, len_output):
@@ -8,14 +9,11 @@ def OHE(val, len_output):
 
 
 def cross_entropy(predictions, targets, epsilon=1e-12):
-    predictions = np.clip(predictions, epsilon, 1. - epsilon)
-    N = predictions.shape[0]
-    out = -np.sum(targets*np.log(predictions))/N
-    return out
+    return entropy(targets) + entropy(targets, predictions)
 
 
 def relu(x):
-    return x * x(x > 0)
+    return x if x > 0 else 0
 
 
 def drelu(x):
