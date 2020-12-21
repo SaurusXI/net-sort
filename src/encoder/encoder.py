@@ -57,6 +57,7 @@ class Encoder:
             activation, context, cache = self.cell.forward(
                 x[t], activation, context, self.weights, self.biases
             )
+            # print(f'ctx{context.shape}')
             self.activations[:, :, t] = activation
             self.contexts[:, :, t] = context
             self.caches.append(cache)
@@ -68,7 +69,7 @@ class Encoder:
         return output_activation, output_context
 
     def backprop(self, dactivation, dcontexts):
-        print(dcontexts.shape)
+        # print(dcontexts.shape)
         timesteps = self.input.shape[0]
 
         for t in reversed(range(timesteps)):

@@ -63,6 +63,8 @@ class Decoder:
         self.input_activation = encoded_activation
         self.input_context = encoded_context
 
+        return self.activations
+
     def backprop(self, dcontexts):
         dactivation = np.zeros([CONTEXT_LEN, 1])
 

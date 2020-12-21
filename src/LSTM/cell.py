@@ -42,9 +42,9 @@ class Cell:
             "biases": biases
         }
 
-        print(f'forget_gate: {forget_gate.shape}')
-        print(f'X: {X.shape}')
-        print(f'weights out: {weights["output"].shape}')
+        # print(f'forget_gate: {forget_gate.shape}')
+        # print(f'X: {X.shape}')
+        # print(f'weights out: {weights["output"].shape}')
 
         return activation, context, cache
 
@@ -82,12 +82,12 @@ class Cell:
             (1 - np.square(candidate))
 
         if take_input:
-            print(f'xShape {x}')
+            # print(f'xShape {x}')
             X = np.concatenate([activ_prev, x.reshape((1, 1))], axis=0)
         else:
             X = activ_prev
 
-        print(dcontext.shape)
+        # print(dcontext.shape)
         # print(dout_gate.shape)
         # print(X.shape)
 

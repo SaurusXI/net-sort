@@ -96,6 +96,7 @@ class PtrNet:
 
         self.losses = np.array(self.losses)
         self.Loss = np.sum(self.losses)
+        return self.Loss
 
     def backprop(self):
         self.gradients['u'] = (self.y - self.labels)[:, :, 0] / self.timesteps
@@ -160,7 +161,7 @@ class PtrNet:
         self.gradients['encoder_activations'] = []
         self.gradients['decoder_activations'] = []
 
-    def apply_gradients(self, learning_rate=1e-3):
+    def apply_gradients(self, learning_rate=1e3):
         self.weights['encoder'] -= learning_rate * \
             self.gradients['encoder_weight']
         self.weights['decoder'] -= learning_rate * \
@@ -173,9 +174,10 @@ class PtrNet:
 
     def train(self, X, y, n_epochs):
 
-        for _ in range(n_epochs):
+        for k in range(n_epochs):
             for i, x in enumerate(X):
                 self.forward(x)
-                self.compute_loss(y[i])
+                loss = self.compute_loss(y[i])
                 self.backprop()
                 self.apply_gradients()
+            print(f'Loss at epoch {k} - {loss}')

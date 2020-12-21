@@ -12,3 +12,13 @@ def cross_entropy(predictions, targets, epsilon=1e-12):
     N = predictions.shape[0]
     out = -np.sum(targets*np.log(predictions))/N
     return out
+
+
+def relu(x):
+    return x * x(x > 0)
+
+
+def drelu(x):
+    x[x <= 0] = 0
+    x[x > 0] = 1
+    return x
