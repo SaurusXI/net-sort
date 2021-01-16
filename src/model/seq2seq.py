@@ -4,12 +4,13 @@ from model.utils import cross_entropy
 
 
 CONTEXT_LEN = 256
+MAX_NUM = 100
 
 
 class Seq2Seq:
     def __init__(self):
-        self.encoder = Encoder(1)
-        self.decoder = Decoder(1)
+        self.encoder = Encoder(MAX_NUM)
+        self.decoder = Decoder(MAX_NUM)
 
         # Forward prop stuff
         self.input = None
@@ -53,8 +54,8 @@ class Seq2Seq:
                 self.backprop(y[i])
                 self.apply_gradients()
                 self.reset_gradients()
-                print(f'Loss for sample {i} - {loss}')
-            print(f'Loss at epoch {k} - {loss}')
+                print(f'Loss at sample {i} - {loss}')
+            print(f'Loss for epoch {k} - {loss}')
 
     def output(self):
         return [round(i) for i in self.out]
