@@ -8,7 +8,10 @@ def OHE(val, len_output):
     return res.reshape(list(val.shape)+[len_output])
 
 
-def cross_entropy(predictions, targets, epsilon=1e-12):
+def cross_entropy(predictions, targets):
+    predictions = np.array(predictions)
+    print(predictions)
+    print(targets)
     return entropy(predictions) + entropy(predictions, targets)
 
 
