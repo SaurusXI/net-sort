@@ -1,5 +1,6 @@
 import numpy as np
 from LSTM.cell import Cell
+from model.utils import OHE
 
 
 CONTEXT_LEN = 256
@@ -48,6 +49,7 @@ class Encoder:
 
     def forward(self, x):
         timesteps = x.shape[0]
+        x = list(map(lambda i: OHE(i, self.input_len), x))
         self.activations = np.zeros([CONTEXT_LEN, 1, timesteps])
         self.contexts = self.activations
 
@@ -68,7 +70,7 @@ class Encoder:
 
     def backprop(self, dactivations, dcontext):
         # print('backproping')
-        timesteps = self.input.shape[0]
+        timesteps = np.array(self.input).shape[0]
         dactivation = 0
 
         for t in reversed(range(timesteps)):

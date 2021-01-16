@@ -1,6 +1,6 @@
 import numpy as np
 from LSTM.cell import Cell
-from model.utils import relu
+from model.utils import relu, OHE
 
 
 CONTEXT_LEN = 256
@@ -58,19 +58,20 @@ class Decoder:
         self.timesteps = timesteps
         self.predictions = []
         self.gradients['encoder_activations'] = []
-        prediction = -1
+        prediction = np.zeros([1, self.output_len])
         context = encoded_contexts[:, :, -1]
 
         for t in range(timesteps):
             activation = encoded_activations[:, :, t]
-            # print(activation)
             activation, context, cache = self.cell.forward(
                 np.array(prediction), activation, context, self.weights, self.biases
             )
-            # print(activation)
-            prediction = relu((self.weights['y'] @ activation)[0][0]
-                              + self.biases['y'])
+            prediction = round(
+                relu((self.weights['y'] @ activation)[0][0]
+                    + self.biases['y'])
+            )
             self.predictions.append(prediction)
+            prediction = OHE(prediction, self.output_len)
             self.activations[:, :, t] = activation
             self.contexts[:, :, t] = context
             self.caches.append(cache)
