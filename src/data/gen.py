@@ -9,8 +9,8 @@ def generate_data():
 
     tot_samples = 100
 
-    for i in range(10, tot_samples + 10):
-        highest = randint(1, 10000)
+    for i in range(3, tot_samples + 3):
+        highest = 99
         # samples = randint(1, sys.maxsize)
         x = np.random.randint(1, highest, [i])
         y = np.sort(x)
