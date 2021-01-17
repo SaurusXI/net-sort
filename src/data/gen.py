@@ -7,12 +7,12 @@ def generate_data():
     X = []
     Y = []
 
-    tot_samples = 1000
+    tot_samples = 10000
 
     for i in range(1, 1 + tot_samples):
-        highest = 99
+        highest = 10
         # samples = randint(1, sys.maxsize)
-        t = 5 if i < 1000 else i // 1000
+        t = 1 if i < 1000 else i // 1000
         x = np.random.randint(1, highest, [t])
         y = np.sort(x)
         X.append(x)

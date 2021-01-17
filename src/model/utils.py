@@ -4,7 +4,7 @@ from scipy.stats import entropy
 
 def OHE(val, len_output):
     val = np.array(val)
-    res = np.eye(len_output)[np.array(val).reshape(-1)]
+    res = np.eye(len_output)[np.array(val).reshape(-1) - 1]
     return res.reshape(list(val.shape)+[len_output])
 
 

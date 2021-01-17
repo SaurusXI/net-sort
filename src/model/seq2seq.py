@@ -67,4 +67,4 @@ class Seq2Seq:
             print(f'Test sequence {[1, 6, 2, 4, 3]}\nPrediction {self.output()}')
 
     def output(self):
-        return [round(np.argmax(i)) for i in self.out]
+        return [1 + np.argmax(i) for i in self.out]
