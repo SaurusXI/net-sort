@@ -128,6 +128,8 @@ class Cell:
         # print(db_forget.shape)
         # print(weights['forget'].shape)
         # 1/0
+        # print(weights['forget'].shape)
+        # print(dW_forget.shape)
         dX_forget = weights['forget'].T @ db_forget
         dX_update = weights['update'].T @ db_update
         dX_out = weights['output'].T @ db_out 
@@ -138,9 +140,12 @@ class Cell:
         # dx_candidate = (weights['candidate'].T @ dcandidate)
         dX = dX_forget + dX_update + dX_out + dX_candidate
 
-        dactiv_prev = dX[:out_len, :]
-        dx = dX[out_len:, :]
-
+        if take_input:
+            dactiv_prev = dX[:out_len, :]
+            dx = dX[out_len:, :]
+        else:
+            dactiv_prev = dX
+            dx = dX
         # print(f'dactivation_prev: {dactiv_prev.shape}')
         # print(((weights['forget'][:, out_len:].T @ dforget_gate) + (weights['update'][:, out_len:].T @ dupdate_gate) + (weights['candidate'][:, out_len:].T @ dcandidate) + (weights['output'][:, out_len:].T @ dout_gate)).shape)
 
