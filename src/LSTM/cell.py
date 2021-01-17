@@ -17,6 +17,8 @@ class Cell:
 
         if take_input:
             X = np.concatenate([activ_prev, x.reshape((-1, 1))], axis=0)
+            # print(X)
+            # 1/0
         else:
             x = activ_prev
             X = x
@@ -27,6 +29,8 @@ class Cell:
         candidate = np.tanh((weights['candidate'] @ X) + biases['candidate'])
         context = (forget_gate * context_prev) + (update_gate * candidate)
         activation = out_gate * np.tanh(context)
+        # print(np.tanh(context)[:10])
+        # print(activation[:10])
 
         # print(f'X {weights["forget"] @ X}')
         # print(f'biases {biases["forget"]}')
@@ -71,16 +75,18 @@ class Cell:
         x = cache['input']
         weights = cache['weights']
 
-        out_len = context.shape[0]
+        out_len = dactivation.shape[0]
 
         # print(f'context: {context.shape}')
         # print(f'out_gate: {out_gate.shape}')
+        # print(f'dactivation: {dactivation.shape}')
         # Gradients for LSTM cell gates
         dcontext += dactivation * out_gate * (1 - np.square(np.tanh(context)))
-        dout_gate = dactivation * np.tanh(context) * out_gate * (1 - out_gate)
-        dforget_gate = (dcontext * context_prev) * forget_gate * (1 - forget_gate)
-        dupdate_gate = (dcontext * candidate) * update_gate * (1 - update_gate)
-        dcandidate = (dcontext * update_gate) * (1 - np.square(np.tanh(context)))
+        dout_gate = dactivation * np.tanh(context)
+        dforget_gate = dcontext * context_prev
+        dupdate_gate = dcontext * candidate
+        dcandidate = dcontext * update_gate
+        dcontext_prev = dcontext * forget_gate
 
         if take_input:
             # print(f'xShape {x}')
@@ -91,28 +97,49 @@ class Cell:
         # print(dcontext[0][0])
         # print(dout_gate.shape)
         # print(X.shape)
+        # print(candidate.shape)
+        # print(X.shape)
+        # print(dcandidate.shape)
+        # print(weights['candidate'].shape)
+
+        db_candidate = dcandidate * (1 - np.square(candidate)) 
+        dW_candidate = db_candidate @ X.T
+        db_out = dout_gate * out_gate * (1 - out_gate)
+        dW_out = db_out @ X.T
+        db_update = dupdate_gate * update_gate * (1 - update_gate)
+        dW_update = db_update @ X.T
+        db_forget = dforget_gate * forget_gate * (1 - forget_gate)
+        dW_forget = db_forget @ X.T
 
         # Gradients for weights and biases
-        dW_out = dout_gate @ X.T
-        db_out = np.sum(dout_gate, axis=1, keepdims=True)
-        dW_update = dupdate_gate @ X.T
-        db_update = np.sum(dupdate_gate, axis=1, keepdims=True)
-        dW_forget = dforget_gate @ X.T
-        db_forget = np.sum(dforget_gate, axis=1, keepdims=True)
-        dW_candidate = dcandidate @ X.T
-        db_candidate = np.sum(dcandidate, axis=1, keepdims=True)
+        # dW_out = dout_gate @ X.T
+        # db_out = np.sum(dout_gate, axis=1, keepdims=True)
+        # dW_update = dupdate_gate @ X.T
+        # db_update = np.sum(dupdate_gate, axis=1, keepdims=True)
+        # dW_forget = dforget_gate @ X.T
+        # db_forget = np.sum(dforget_gate, axis=1, keepdims=True)
+        # dW_candidate = dcandidate @ X.T
+        # db_candidate = np.sum(dcandidate, axis=1, keepdims=True)
 
         # Gradients for previous time-step activation
         # print(f'weights {dW_forget[:10, :10]}')
         # print(f'gate {dforget_gate[:10, :10]}')
-        dx_forget = (weights['forget'].T @ dforget_gate) / 1e-4
-        dx_update = (weights['update'].T @ dupdate_gate) / 1e-4
-        dx_out = (weights['output'].T @ dout_gate) / 1e-4
-        dx_candidate = (weights['candidate'].T @ dcandidate) / 1e-4
-        dx = (dx_forget + dx_update + dx_out + dx_candidate) / 4
+        # print(X.shape)
+        # print(db_forget.shape)
+        # print(weights['forget'].shape)
+        # 1/0
+        dX_forget = weights['forget'].T @ db_forget
+        dX_update = weights['update'].T @ db_update
+        dX_out = weights['output'].T @ db_out 
+        dX_candidate = weights['candidate'].T @ db_candidate
+        # dx_forget = (weights['forget'].T @ dforget_gate)
+        # dx_update = (weights['update'].T @ dupdate_gate)
+        # dx_out = (weights['output'].T @ dout_gate)
+        # dx_candidate = (weights['candidate'].T @ dcandidate)
+        dX = dX_forget + dX_update + dX_out + dX_candidate
 
-        dactiv_prev = dx[:out_len, :]
-        dcontext_prev = dcontext * forget_gate
+        dactiv_prev = dX[:out_len, :]
+        dx = dX[out_len:, :]
 
         # print(f'dactivation_prev: {dactiv_prev.shape}')
         # print(((weights['forget'][:, out_len:].T @ dforget_gate) + (weights['update'][:, out_len:].T @ dupdate_gate) + (weights['candidate'][:, out_len:].T @ dcandidate) + (weights['output'][:, out_len:].T @ dout_gate)).shape)
