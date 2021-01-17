@@ -9,14 +9,33 @@ def OHE(val, len_output):
 
 
 def cross_entropy(predictions, targets):
-    predictions = np.array(predictions)
-    print(predictions)
-    print(targets)
+    predictions = np.array(predictions)[:, :, 0]
+    # print(predictions.shape)
+    # print(targets.shape)
     return entropy(predictions) + entropy(predictions, targets)
 
 
 def relu(x):
-    return x if x > 0 else 0
+    x = list(map(lambda i: i if i > 0 else 0, x))
+    return np.array(x)
+
+
+def categorical_cross_entropy(predictions, targets, epsilon=1e-12):
+    predictions = np.clip(predictions, epsilon, 1. - epsilon)
+    N = predictions.shape[0]
+    predictions = predictions[:, :, 0]
+    ce = -np.sum(targets*np.log(predictions+1e-9))/N
+    return ce
+
+def dsoftmax(s):
+    jacobian_m = np.diag(s)
+    for i in range(len(jacobian_m)):
+        for j in range(len(jacobian_m)):
+            if i == j:
+                jacobian_m[i][j] = s[i] * (1-s[i])
+            else: 
+                jacobian_m[i][j] = -s[i]*s[j]
+    return jacobian_m
 
 
 def drelu(x):
