@@ -26,6 +26,6 @@ SEQ_TO_SORT = [1, 4, 2, 6, 5]
 
 if __name__ == '__main__':
     sorter = Seq2Seq()
-    sorter.train(X, Y, N_EPOCHS)
+    sorter.train(X, Y, N_EPOCHS, 16)
     sorter.forward(np.array(SEQ_TO_SORT))
     print(f'Sorted sequence: {sorter.output()}')
