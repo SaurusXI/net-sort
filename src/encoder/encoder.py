@@ -3,7 +3,7 @@ from LSTM.cell import Cell
 from model.utils import OHE
 
 
-CONTEXT_LEN = 256
+CONTEXT_LEN = 32
 
 
 class Encoder:
@@ -19,6 +19,8 @@ class Encoder:
             ) / 1e4,
             'output': np.random.random([CONTEXT_LEN, CONTEXT_LEN + input_len]) / 1e4
         }
+        # print(self.weights['update'][:10])
+        # print(self.weights['forget'][:10])
         self.biases = {
             'update': np.random.random([CONTEXT_LEN, 1]),
             'forget': np.random.random([CONTEXT_LEN, 1]),
@@ -29,7 +31,7 @@ class Encoder:
         # Initialize stuff to store during forward pass
         self.caches = []
         self.input = []
-        self.a0 = np.zeros([CONTEXT_LEN, 1])
+        self.a0 = np.random.random([CONTEXT_LEN, 1])
         self.contexts = None
         self.activations = None
 
@@ -50,31 +52,34 @@ class Encoder:
     def forward(self, x):
         timesteps = x.shape[0]
         x = list(map(lambda i: OHE(i, self.input_len), x))
-        self.activations = np.zeros([CONTEXT_LEN, 1, timesteps])
-        self.contexts = self.activations
+        self.activations = []
+        self.contexts = []
 
         activation = self.a0
-        context = np.zeros(activation.shape)
+        context = np.random.random(activation.shape)
 
         for t in range(timesteps):
+            # if t == 3:
+            #     1/0
             activation, context, cache = self.cell.forward(
                 x[t], activation, context, self.weights, self.biases
             )
-            # print(f'ctx{context.shape}')
-            self.activations[:, :, t] = activation
-            self.contexts[:, :, t] = context
+            # print(activation[:10])
+            self.activations.append(activation)
+            self.contexts.append(context)
             self.caches.append(cache)
 
         self.input = x
+        self.activations = np.array(self.activations)
+        self.contexts = np.array(self.contexts)
+        
         return self.activations, self.contexts
 
-    def backprop(self, dactivations, dcontext):
+    def backprop(self, dactivation, dcontext):
         # print('backproping')
         timesteps = np.array(self.input).shape[0]
-        dactivation = 0
 
         for t in reversed(range(timesteps)):
-            dactivation += dactivations[t, :, :]
             grad = self.cell.backprop(
                 dactivation,
                 dcontext,
@@ -95,7 +100,7 @@ class Encoder:
         self.gradients['bias_candidate'] += grad['bias_candidate']
 
         if clipping:
-            self.clip_grads
+            self.clip_grads()
 
     def get_activations(self):
         return self.contexts
