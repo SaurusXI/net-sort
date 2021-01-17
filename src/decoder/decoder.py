@@ -1,9 +1,10 @@
 import numpy as np
 from LSTM.cell import Cell
-from model.utils import relu, OHE
+from model.utils import relu, OHE, drelu
+from scipy.special import softmax
 
 
-CONTEXT_LEN = 256
+CONTEXT_LEN = 32
 
 
 class Decoder:
@@ -19,14 +20,15 @@ class Decoder:
             'forget': np.random.random(weights_shape) / 1e4,
             'candidate': np.random.random(weights_shape) / 1e4,
             'output': np.random.random(weights_shape) / 1e4,
-            'y': np.random.random([1, CONTEXT_LEN])
+            'y': np.random.random([self.output_len, CONTEXT_LEN]) / 1e4
         }
+        # print(self.weights['y'])
         self.biases = {
             'update': np.random.random([CONTEXT_LEN, 1]),
             'forget': np.random.random([CONTEXT_LEN, 1]),
             'candidate': np.random.random([CONTEXT_LEN, 1]),
             'output': np.random.random([CONTEXT_LEN, 1]),
-            'y': 0
+            'y': np.zeros([self.output_len, 1])
         }
 
         # Initialize stuff to store during forward pass
@@ -42,58 +44,58 @@ class Decoder:
             'weights_update': np.zeros(weights_shape),
             'weights_output': np.zeros(weights_shape),
             'weights_candidate': np.zeros(weights_shape),
-            'weights_y': np.zeros([1, CONTEXT_LEN]),
+            'weights_y': np.zeros([self.output_len, CONTEXT_LEN]),
             'bias_forget': np.zeros(bias_shape),
             'bias_update': np.zeros(bias_shape),
             'bias_output': np.zeros(bias_shape),
             'bias_candidate': np.zeros(bias_shape),
-            'bias_y': 0,
+            'bias_y': np.zeros([self.output_len, 1]),
             'output_activation': np.zeros(bias_shape),
             'encoder_activations': []
         }
 
     def forward(self, encoded_activations, encoded_contexts, timesteps):
-        self.activations = np.zeros([CONTEXT_LEN, 1, timesteps])
-        self.contexts = self.activations
+        self.activations = []
+        self.contexts = []
         self.timesteps = timesteps
         self.predictions = []
         self.gradients['encoder_activations'] = []
         prediction = np.zeros([1, self.output_len])
-        context = encoded_contexts[:, :, -1]
+        context = encoded_contexts[-1, :, :]
+        activation = encoded_activations[-1, :, :]
 
         for t in range(timesteps):
-            activation = encoded_activations[:, :, t]
+            # if t == 3:
+            #     1/0
             activation, context, cache = self.cell.forward(
                 np.array(prediction), activation, context, self.weights, self.biases
             )
-            prediction = round(
-                relu((self.weights['y'] @ activation)[0][0]
+            prediction = softmax((self.weights['y'] @ activation)
                     + self.biases['y'])
-            )
+            # print(f'pred {np.argmax(softmax(self.weights["y"] @ activation + self.biases["y"]))}')
+            prediction = OHE(np.argmax(prediction), self.output_len).reshape(-1, 1)
             self.predictions.append(prediction)
-            prediction = OHE(prediction, self.output_len)
-            self.activations[:, :, t] = activation
-            self.contexts[:, :, t] = context
+            self.activations.append(activation)
+            self.contexts.append(context)
             self.caches.append(cache)
+
+        self.activations = np.array(self.activations)
+        self.contexts = np.array(self.contexts)
 
         self.input_activation = encoded_activations
         self.input_context = encoded_contexts
-
         return self.predictions
 
     def backprop(self, ground_truth):
         dcontext = np.zeros([CONTEXT_LEN, 1])
+        dactiv_prev = np.zeros([CONTEXT_LEN, 1])
 
         for t in reversed(range(self.timesteps)):
-            zi = ((self.weights['y'] @ self.activations[:, :, t])
-                  + self.biases['y'])[0][0]
-            drelu = 1 if zi > 0 else 0
-            doi = -(ground_truth[t] / self.predictions[t])
-
-            self.gradients['weights_y'] = doi * drelu * self.activations[:, :, t].T
-            self.gradients['bias_y'] += doi * drelu
-            self.gradients['output_activation'] = doi * drelu * \
-                self.weights['y'].T
+            # print(self.predictions[t].shape)
+            # zi = ((self.weights['y'] @ self.activations[t])
+            #       + self.biases['y'])
+            do = self.predictions[t] - OHE(ground_truth[t], self.output_len).reshape(-1, 1)
+            self.gradients['output_activation'] = dactiv_prev + self.weights['y'].T @ do
 
             grad = self.cell.backprop(
                 self.gradients['output_activation'],
@@ -101,12 +103,16 @@ class Decoder:
                 self.caches[t]
             )
             dcontext = grad['context_prev']
+            dactiv_prev = grad['activ_prev']
+
+            grad['weights_y'] = do @ self.activations[t].T
+            grad['bias_y'] = do
             self.update_grads(grad)
 
         self.gradients['encoder_activations'] = np.array(
             self.gradients['encoder_activations']
         )
-        return self.gradients['encoder_activations'], dcontext
+        return dactiv_prev, dcontext
 
     def update_grads(self, grad, clipping=True):
         self.gradients['weights_forget'] += grad['weights_forget']
@@ -120,6 +126,8 @@ class Decoder:
         self.gradients['encoder_activations'].append(
             grad['activ_prev']
         )
+        self.gradients['weights_y'] += grad['weights_y']
+        self.gradients['bias_y'] += grad['bias_y']
         if clipping:
             self.clip_grads()
 
@@ -131,12 +139,12 @@ class Decoder:
             'weights_update': np.zeros(weights_shape),
             'weights_output': np.zeros(weights_shape),
             'weights_candidate': np.zeros(weights_shape),
-            'weights_y': np.zeros([1, CONTEXT_LEN]),
+            'weights_y': np.zeros([self.output_len, CONTEXT_LEN]),
             'bias_forget': np.zeros(bias_shape),
             'bias_update': np.zeros(bias_shape),
             'bias_output': np.zeros(bias_shape),
             'bias_candidate': np.zeros(bias_shape),
-            'bias_y': 0,
+            'bias_y': np.zeros([self.output_len, 1]),
             'output_activation': np.zeros(bias_shape),
             'encoder_activations': []
         }
