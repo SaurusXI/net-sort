@@ -4,16 +4,17 @@ from model.utils import relu, OHE, drelu
 from scipy.special import softmax
 
 
-CONTEXT_LEN = 32
+CONTEXT_LEN = 64
 
 
 class Decoder:
-    def __init__(self, output_len):
+    def __init__(self, output_len, temperature):
         self.cell = Cell()
+        self.temperature = temperature
         self.output_len = output_len
 
         # Initialize weights and biases
-        weights_shape = [CONTEXT_LEN, CONTEXT_LEN + self.output_len]
+        weights_shape = [CONTEXT_LEN, CONTEXT_LEN]
         bias_shape = [CONTEXT_LEN, 1]
         self.weights = {
             'update': np.random.random(weights_shape) / 1e4,
@@ -25,10 +26,10 @@ class Decoder:
         # print(self.weights['y'])
         self.biases = {
             'update': np.random.random([CONTEXT_LEN, 1]),
-            'forget': np.random.random([CONTEXT_LEN, 1]),
+            'forget': np.ones([CONTEXT_LEN, 1]),
             'candidate': np.random.random([CONTEXT_LEN, 1]),
             'output': np.random.random([CONTEXT_LEN, 1]),
-            'y': np.zeros([self.output_len, 1])
+            'y': np.random.random([self.output_len, 1])
         }
 
         # Initialize stuff to store during forward pass
@@ -54,26 +55,27 @@ class Decoder:
             'encoder_activations': []
         }
 
-    def forward(self, encoded_activations, encoded_contexts, timesteps):
+    def forward(self, encoded_activations, encoded_contexts, timesteps, debug=False):
         self.activations = []
         self.contexts = []
         self.timesteps = timesteps
         self.predictions = []
         self.gradients['encoder_activations'] = []
         prediction = np.zeros([1, self.output_len])
-        context = encoded_contexts[-1, :, :]
-        activation = encoded_activations[-1, :, :]
+        context = encoded_contexts[-1]
+        activation = encoded_activations[-1]
 
         for t in range(timesteps):
             # if t == 3:
             #     1/0
             activation, context, cache = self.cell.forward(
-                np.array(prediction), activation, context, self.weights, self.biases
+                None, activation, context, self.weights, self.biases, False
             )
-            prediction = softmax((self.weights['y'] @ activation)
-                    + self.biases['y'])
-            # print(f'pred {np.argmax(softmax(self.weights["y"] @ activation + self.biases["y"]))}')
-            prediction = OHE(np.argmax(prediction), self.output_len).reshape(-1, 1)
+            prediction = softmax(
+                ((self.weights['y'] @ activation) + self.biases['y']) 
+                / self.temperature
+            )
+            # print(prediction[:60])
             self.predictions.append(prediction)
             self.activations.append(activation)
             self.contexts.append(context)
@@ -84,6 +86,10 @@ class Decoder:
 
         self.input_activation = encoded_activations
         self.input_context = encoded_contexts
+
+        if debug:
+            with open('activations.log', 'w') as f:
+                print(np.array(self.predictions), file=f)
         return self.predictions
 
     def backprop(self, ground_truth):
@@ -91,22 +97,20 @@ class Decoder:
         dactiv_prev = np.zeros([CONTEXT_LEN, 1])
 
         for t in reversed(range(self.timesteps)):
-            # print(self.predictions[t].shape)
-            # zi = ((self.weights['y'] @ self.activations[t])
-            #       + self.biases['y'])
             do = self.predictions[t] - OHE(ground_truth[t], self.output_len).reshape(-1, 1)
-            self.gradients['output_activation'] = dactiv_prev + self.weights['y'].T @ do
+            self.gradients['output_activation'] = dactiv_prev + ((self.weights['y'].T @ do) / self.temperature)
 
             grad = self.cell.backprop(
                 self.gradients['output_activation'],
                 dcontext,
-                self.caches[t]
+                self.caches[t],
+                False
             )
             dcontext = grad['context_prev']
             dactiv_prev = grad['activ_prev']
 
-            grad['weights_y'] = do @ self.activations[t].T
-            grad['bias_y'] = do
+            grad['weights_y'] = (do @ self.activations[t].T) / self.temperature
+            grad['bias_y'] = do / self.temperature
             self.update_grads(grad)
 
         self.gradients['encoder_activations'] = np.array(
@@ -115,6 +119,8 @@ class Decoder:
         return dactiv_prev, dcontext
 
     def update_grads(self, grad, clipping=True):
+        # print(self.gradients['weights_forget'].shape)
+        # print(grad['weights_forget'].shape)
         self.gradients['weights_forget'] += grad['weights_forget']
         self.gradients['weights_update'] += grad['weights_update']
         self.gradients['weights_output'] += grad['weights_output']
@@ -132,7 +138,7 @@ class Decoder:
             self.clip_grads()
 
     def reset_gradients(self):
-        weights_shape = [CONTEXT_LEN, CONTEXT_LEN + self.output_len]
+        weights_shape = [CONTEXT_LEN, CONTEXT_LEN]
         bias_shape = [CONTEXT_LEN, 1]
         self.gradients = {
             'weights_forget': np.zeros(weights_shape),
@@ -162,11 +168,8 @@ class Decoder:
             pass
 
     def apply_gradients(self, learning_rate=1e-3):
-        # print(f'orig {self.weights["forget"][-1][0]}')
-        # print(f'grad {self.gradients["weights_forget"][-1][0]}')
         self.weights['forget'] -= learning_rate * \
             self.gradients['weights_forget']
-        # print(f'new {self.weights["forget"][-1][0]}')
         self.weights['update'] -= learning_rate * \
             self.gradients['weights_update']
         self.weights['output'] -= learning_rate * \
