@@ -1,9 +1,9 @@
 from encoder.encoder import Encoder
 from decoder.decoder import Decoder
-from model.utils import cross_entropy
+from model.utils import categorical_cross_entropy, OHE
+import numpy as np
 
-
-CONTEXT_LEN = 256
+CONTEXT_LEN = 32
 MAX_NUM = 100
 
 
@@ -28,15 +28,15 @@ class Seq2Seq:
         self.input = x
 
     def compute_loss(self, ground_truth):
-        self.Loss = cross_entropy(self.out, ground_truth)
+        self.Loss = categorical_cross_entropy(self.out, OHE(ground_truth, MAX_NUM))
         self.ground_truth = ground_truth
         return self.Loss
 
     def backprop(self, ground_truth):
-        dactivations_enc, dcontext_enc = self.decoder.backprop(ground_truth)
-        self.encoder.backprop(dactivations_enc, dcontext_enc)
+        dactivation_enc, dcontext_enc = self.decoder.backprop(ground_truth)
+        self.encoder.backprop(dactivation_enc, dcontext_enc)
 
-    def apply_gradients(self, learning_rate=1e-7):
+    def apply_gradients(self, learning_rate=1e-3):
         self.encoder.apply_gradients(learning_rate)
         self.decoder.apply_gradients(learning_rate)
 
@@ -44,18 +44,27 @@ class Seq2Seq:
         self.encoder.reset_gradients()
         self.decoder.reset_gradients()
 
-    def train(self, X, y, n_epochs):
-
+    def train(self, X, y, n_epochs, batch_size=1):
+        # self.forward(np.array([1, 6, 2, 4, 3]))
         for k in range(n_epochs):
             loss = 0
+            # print(f'Training epoch {k + 1} [', end='')
             for i, x in enumerate(X):
                 self.forward(x)
                 loss += self.compute_loss(y[i])
                 self.backprop(y[i])
-                self.apply_gradients()
-                self.reset_gradients()
-                print(f'Loss at sample {i} - {loss}')
-            print(f'Loss for epoch {k} - {loss}')
+                if i % batch_size == 0:
+                    self.apply_gradients()
+                    self.reset_gradients()
+                # if i % 100 == 0:
+                    # print('-', end='')
+                print(f'Loss at sample {i+1} - {loss}')
+            self.apply_gradients()
+            self.reset_gradients()
+            # print(']')
+            print(f'Loss for epoch {k+1} - {loss}')
+            self.forward(np.array([1, 6, 2, 4, 3]))
+            print(f'Test sequence {[1, 6, 2, 4, 3]}\nPrediction {self.output()}')
 
     def output(self):
-        return [round(i) for i in self.out]
+        return [round(np.argmax(i)) for i in self.out]
