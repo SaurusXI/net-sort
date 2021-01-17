@@ -3,7 +3,7 @@ from LSTM.cell import Cell
 from model.utils import OHE
 
 
-CONTEXT_LEN = 32
+CONTEXT_LEN = 64
 
 
 class Encoder:
@@ -23,7 +23,7 @@ class Encoder:
         # print(self.weights['forget'][:10])
         self.biases = {
             'update': np.random.random([CONTEXT_LEN, 1]),
-            'forget': np.random.random([CONTEXT_LEN, 1]),
+            'forget': np.ones([CONTEXT_LEN, 1]),
             'candidate': np.random.random([CONTEXT_LEN, 1]),
             'output': np.random.random([CONTEXT_LEN, 1])
         }
@@ -125,7 +125,7 @@ class Encoder:
             'bias_candidate': np.zeros(bias_shape),
         }
 
-    def apply_gradients(self, learning_rate=1e-3):
+    def apply_gradients(self, learning_rate=1e-3, momentum=0.9):
         self.weights['forget'] -= learning_rate * self.gradients['weights_forget']
         self.weights['update'] -= learning_rate * self.gradients['weights_update']
         self.weights['output'] -= learning_rate * self.gradients['weights_output']

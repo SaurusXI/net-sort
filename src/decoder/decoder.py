@@ -52,7 +52,6 @@ class Decoder:
             'bias_candidate': np.zeros(bias_shape),
             'bias_y': np.zeros([self.output_len, 1]),
             'output_activation': np.zeros(bias_shape),
-            'encoder_activations': []
         }
 
     def forward(self, encoded_activations, encoded_contexts, timesteps, debug=False):
@@ -60,7 +59,6 @@ class Decoder:
         self.contexts = []
         self.timesteps = timesteps
         self.predictions = []
-        self.gradients['encoder_activations'] = []
         prediction = np.zeros([1, self.output_len])
         context = encoded_contexts[-1]
         activation = encoded_activations[-1]
@@ -113,9 +111,6 @@ class Decoder:
             grad['bias_y'] = do / self.temperature
             self.update_grads(grad)
 
-        self.gradients['encoder_activations'] = np.array(
-            self.gradients['encoder_activations']
-        )
         return dactiv_prev, dcontext
 
     def update_grads(self, grad, clipping=True):
@@ -129,9 +124,6 @@ class Decoder:
         self.gradients['bias_update'] += grad['bias_update']
         self.gradients['bias_output'] += grad['bias_output']
         self.gradients['bias_candidate'] += grad['bias_candidate']
-        self.gradients['encoder_activations'].append(
-            grad['activ_prev']
-        )
         self.gradients['weights_y'] += grad['weights_y']
         self.gradients['bias_y'] += grad['bias_y']
         if clipping:
@@ -152,7 +144,6 @@ class Decoder:
             'bias_candidate': np.zeros(bias_shape),
             'bias_y': np.zeros([self.output_len, 1]),
             'output_activation': np.zeros(bias_shape),
-            'encoder_activations': []
         }
 
     def get_activations(self):
@@ -167,19 +158,14 @@ class Decoder:
         except Exception:
             pass
 
-    def apply_gradients(self, learning_rate=1e-3):
-        self.weights['forget'] -= learning_rate * \
-            self.gradients['weights_forget']
-        self.weights['update'] -= learning_rate * \
-            self.gradients['weights_update']
-        self.weights['output'] -= learning_rate * \
-            self.gradients['weights_output']
-        self.weights['candidate'] -= learning_rate * \
-            self.gradients['weights_candidate']
+    def apply_gradients(self, learning_rate=1e-3, momentum = 0.9):
+        self.weights['forget'] -= learning_rate * self.gradients['weights_forget']
+        self.weights['update'] -= learning_rate * self.gradients['weights_update']
+        self.weights['output'] -= learning_rate * self.gradients['weights_output']
+        self.weights['candidate'] -= learning_rate * self.gradients['weights_candidate']
         self.weights['y'] -= learning_rate * self.gradients['weights_y']
         self.biases['forget'] -= learning_rate * self.gradients['bias_forget']
         self.biases['update'] -= learning_rate * self.gradients['bias_update']
         self.biases['output'] -= learning_rate * self.gradients['bias_output']
-        self.biases['candidate'] -= learning_rate * \
-            self.gradients['bias_candidate']
+        self.biases['candidate'] -= learning_rate * self.gradients['bias_candidate']
         self.biases['y'] -= learning_rate * self.gradients['bias_y']
