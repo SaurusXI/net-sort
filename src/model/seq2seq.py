@@ -3,14 +3,14 @@ from decoder.decoder import Decoder
 from model.utils import categorical_cross_entropy, OHE
 import numpy as np
 
-CONTEXT_LEN = 32
-MAX_NUM = 100
+CONTEXT_LEN = 64
+MAX_NUM = 10
 
 
 class Seq2Seq:
     def __init__(self):
         self.encoder = Encoder(MAX_NUM)
-        self.decoder = Decoder(MAX_NUM)
+        self.decoder = Decoder(MAX_NUM, 0.5)
 
         # Forward prop stuff
         self.input = None
@@ -19,11 +19,11 @@ class Seq2Seq:
         # Compute loss stuff
         self.Loss = None
 
-    def forward(self, x):
+    def forward(self, x, debug=False):
         encoded_activations, encoded_contexts = self.encoder.forward(x)
         self.timesteps = x.shape[0]
         self.out = self.decoder.forward(
-            encoded_activations, encoded_contexts, self.timesteps
+            encoded_activations, encoded_contexts, self.timesteps, debug
         )
         self.input = x
 
@@ -36,7 +36,7 @@ class Seq2Seq:
         dactivation_enc, dcontext_enc = self.decoder.backprop(ground_truth)
         self.encoder.backprop(dactivation_enc, dcontext_enc)
 
-    def apply_gradients(self, learning_rate=1e-3):
+    def apply_gradients(self, learning_rate=1e-4):
         self.encoder.apply_gradients(learning_rate)
         self.decoder.apply_gradients(learning_rate)
 
@@ -58,12 +58,12 @@ class Seq2Seq:
                     self.reset_gradients()
                 # if i % 100 == 0:
                     # print('-', end='')
-                print(f'Loss at sample {i+1} - {loss}')
+                # print(f'Loss at sample {i+1} - {loss}')
             self.apply_gradients()
             self.reset_gradients()
             # print(']')
             print(f'Loss for epoch {k+1} - {loss}')
-            self.forward(np.array([1, 6, 2, 4, 3]))
+            self.forward(np.array([1, 6, 2, 4, 3]), True)
             print(f'Test sequence {[1, 6, 2, 4, 3]}\nPrediction {self.output()}')
 
     def output(self):
