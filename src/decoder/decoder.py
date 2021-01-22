@@ -21,7 +21,9 @@ class Decoder:
             'forget': np.random.random(weights_shape) / 1e4,
             'candidate': np.random.random(weights_shape) / 1e4,
             'output': np.random.random(weights_shape) / 1e4,
-            'y': np.random.random([self.output_len, CONTEXT_LEN]) / 1e4
+            'W1': np.random.random(weights_shape + self.output_len) / 1e4,
+            'W2': np.random.random(weights_shape + self.output_len) / 1e4,
+            'v': np.random.random([CONTEXT_LEN + self.output_len, 1]) / 1e4
         }
         # print(self.weights['y'])
         self.biases = {
@@ -29,7 +31,6 @@ class Decoder:
             'forget': np.ones([CONTEXT_LEN, 1]),
             'candidate': np.random.random([CONTEXT_LEN, 1]),
             'output': np.random.random([CONTEXT_LEN, 1]),
-            'y': np.random.random([self.output_len, 1])
         }
 
         # Initialize stuff to store during forward pass
@@ -69,8 +70,16 @@ class Decoder:
             activation, context, cache = self.cell.forward(
                 None, activation, context, self.weights, self.biases, False
             )
+            ui = []
+            for enc_act in encoded_activations:
+                uij = self.weights['v'].T @ np.tanh(
+                    self.weights['W1'] @ enc_act + 
+                    self.weights['W2'] @ activation
+                )
+                ui.append(uij)
+
             prediction = softmax(
-                ((self.weights['y'] @ activation) + self.biases['y']) 
+                np.array(ui) 
                 / self.temperature
             )
             # print(prediction[:60])
