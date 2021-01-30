@@ -14,6 +14,9 @@ class Cell:
             weights,
             biases,
             take_input=True):
+        '''
+        Forward pass through LSTM cell
+        '''
 
         if take_input:
             X = np.concatenate([activ_prev, x.reshape((-1, 1))], axis=0)
@@ -45,6 +48,9 @@ class Cell:
         return activation, context, cache
 
     def backprop(self, dactivation, dcontext, cache, take_input=True):
+        '''
+        Backward pass through LSTM cell to compute gradients
+        '''
         context = cache['context']
         activ_prev = cache['activ_prev']
         context_prev = cache['context_prev']

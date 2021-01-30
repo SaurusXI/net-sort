@@ -1,4 +1,11 @@
-def generate_data():
+def generate_data(tot_samples=10000, highest=20, t=5):
+    '''
+    Generate data as follows:
+    Alternate lines describe an input X and its prediction Y. For the pointer-net architecture,
+    Y is a set of indices for the input. Each array is stored as space separated numbers
+    A total of `tot_samples` number of samples is generated. `highest` is the non-inclusive upper-bound.
+    `t` dentoes the total number of elements generated per sample.
+    '''
     import numpy as np
     from random import seed, randint
     seed(1)
@@ -7,12 +14,7 @@ def generate_data():
     X = []
     Y = []
 
-    tot_samples = 10000
-
     for i in range(1, 1 + tot_samples):
-        highest = 20
-        # samples = randint(1, sys.maxsize)
-        t = 5
         x = np.random.randint(1, highest, [t])
         y = np.argsort(x)
         X.append(x)

@@ -22,6 +22,11 @@ class Seq2Seq:
         self.Loss = None
 
     def forward(self, x, debug=False):
+        '''
+        Forward pass through model. Forward pass through encoder generates intermediate context which is passed on to decoder for decoder forward pass.
+        Furthermore encoder activations are used by decoder to make a prediction at every time-step using a modified attention mechanism for
+        pointer-networks.
+        '''
         self.encoded_activations, self.encoded_contexts = self.encoder.forward(
             x)
         self.timesteps = x.shape[0]
@@ -31,29 +36,48 @@ class Seq2Seq:
         self.input = x
 
     def compute_loss(self, ground_truth):
+        '''
+        Compute loss using categorical cross entropy
+        '''
         N = np.array(ground_truth).shape[0]
         self.Loss = categorical_cross_entropy(self.out, OHE(ground_truth, N))
         self.ground_truth = ground_truth
         return self.Loss
 
     def backprop(self, ground_truth):
+        '''
+        Backpropagate through decoder and encoder to compute gradients. Since gradient activations are used for prediction by attention mechanism
+        at decoder, gradients for encoder activations are also computed by decoder and backpropagated.
+        '''
         dactivation_enc, dcontext_enc, enc_act_grads = self.decoder.backprop(
             ground_truth, self.encoded_activations)
         self.encoder.backprop(dactivation_enc, dcontext_enc, enc_act_grads)
 
     def apply_gradients(self, timestep, learning_rate=2e-2):
+        '''
+        Apply gradients to change weights/biases using Adam optimizer.
+        '''
         self.encoder.apply_gradients(timestep, learning_rate)
         self.decoder.apply_gradients(timestep, learning_rate)
 
     def reset_gradients(self):
+        '''
+        Set encoder and decoder gradients to 0s.
+        '''
         self.encoder.reset_gradients()
         self.decoder.reset_gradients()
 
     def reset_accum(self):
+        '''
+        Set encoder and decoder accumulated velocity values to 0
+        '''
         self.encoder.reset_accum()
         self.decoder.reset_accum()
 
     def train(self, X, y, n_epochs, batch_size=1):
+        '''
+        Train on given data for `n_epochs` epochs.
+        '''
         count = 1
         for k in range(n_epochs):
             loss = 0

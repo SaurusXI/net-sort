@@ -72,6 +72,9 @@ class Encoder:
         }
 
     def forward(self, x):
+        '''
+        Forward pass through embedded LSTM cell. Generates an intermediate context that can be passed to decoder.
+        '''
         timesteps = x.shape[0]
         x = list(map(lambda i: OHE(i, self.input_len), x))
         self.activations = []
@@ -95,6 +98,9 @@ class Encoder:
         return self.activations, self.contexts
 
     def backprop(self, dactiv_prev, dcontext, dactivations):
+        '''
+        Backward pass through encoder to compute gradients
+        '''
         timesteps = np.array(self.input).shape[0]
 
         for t in reversed(range(timesteps)):
@@ -109,6 +115,9 @@ class Encoder:
             self.update_grads(grad)
 
     def update_grads(self, grad, clipping=True):
+        '''
+        Update gradient values. Gradient values are accumulated on backward pass until `reset_gradients` is called.
+        '''
         self.gradients['weights_forget'] += grad['weights_forget']
         self.gradients['weights_update'] += grad['weights_update']
         self.gradients['weights_output'] += grad['weights_output']
@@ -125,12 +134,18 @@ class Encoder:
         return self.contexts
 
     def clip_grads(self):
+        '''
+        Clip gradients to avoid vanishing/exploding gradients
+        '''
         for k, v in self.gradients.items():
             np.clip(
                 v, 1e-3, 1e3, out=self.gradients[k]
             )
 
     def reset_gradients(self):
+        '''
+        Reset gradients to 0s.
+        '''
         weights_shape = [CONTEXT_LEN, CONTEXT_LEN + self.input_len]
         bias_shape = [CONTEXT_LEN, 1]
         self.gradients = {
@@ -145,6 +160,9 @@ class Encoder:
         }
 
     def reset_accum(self):
+        '''
+        Reset accumulated values for the Adam optimization algorithm.
+        '''
         weights_shape = [CONTEXT_LEN, CONTEXT_LEN + self.input_len]
         bias_shape = [CONTEXT_LEN, 1]
 
@@ -171,6 +189,9 @@ class Encoder:
         }
 
     def apply_gradients(self, timestep, learning_rate=1e-3, momentum=0.9, beta=0.999, epsilon=1e-8):
+        '''
+        Updates weights and biases according to gradients using the Adam optimization algorithm
+        '''
         for k, v in self.weights.items():
             grad_key = 'weights_' + k
             self.accumulated_velocity[grad_key] = momentum * self.accumulated_velocity[grad_key] + \
