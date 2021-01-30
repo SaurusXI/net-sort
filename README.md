@@ -4,7 +4,7 @@ Implemention of LSTM sequence-to-sequence based combinatorics model using only n
 
 ## Models Used
 - [X] Encoder-Decoder architecture
-- [ ] PointerNet architecture described [here](https://arxiv.org/pdf/1506.03134.pdf)
+- [X] PointerNet architecture described [here](https://arxiv.org/pdf/1506.03134.pdf)
 
 ## Instructions to run
 
