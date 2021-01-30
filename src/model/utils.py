@@ -24,13 +24,14 @@ def categorical_cross_entropy(predictions, targets, epsilon=1e-12):
     ce = -np.sum(targets*np.log(predictions+1e-9))/N
     return ce
 
+
 def dsoftmax(s):
     jacobian_m = np.diag(s)
     for i in range(len(jacobian_m)):
         for j in range(len(jacobian_m)):
             if i == j:
                 jacobian_m[i][j] = s[i] * (1-s[i])
-            else: 
+            else:
                 jacobian_m[i][j] = -s[i]*s[j]
     return jacobian_m
 

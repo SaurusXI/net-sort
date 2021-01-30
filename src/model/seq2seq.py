@@ -22,7 +22,8 @@ class Seq2Seq:
         self.Loss = None
 
     def forward(self, x, debug=False):
-        self.encoded_activations, self.encoded_contexts = self.encoder.forward(x)
+        self.encoded_activations, self.encoded_contexts = self.encoder.forward(
+            x)
         self.timesteps = x.shape[0]
         self.out = self.decoder.forward(
             self.encoded_activations, self.encoded_contexts, self.timesteps, debug
@@ -36,7 +37,8 @@ class Seq2Seq:
         return self.Loss
 
     def backprop(self, ground_truth):
-        dactivation_enc, dcontext_enc, enc_act_grads = self.decoder.backprop(ground_truth, self.encoded_activations)
+        dactivation_enc, dcontext_enc, enc_act_grads = self.decoder.backprop(
+            ground_truth, self.encoded_activations)
         self.encoder.backprop(dactivation_enc, dcontext_enc, enc_act_grads)
 
     def apply_gradients(self, timestep, learning_rate=2e-2):
@@ -68,13 +70,16 @@ class Seq2Seq:
             self.reset_gradients()
             print(f'Loss for epoch {k+1} - {loss}')
             self.forward(np.array([1, 6, 2, 4, 3]), True)
-            print(f'Test sequence {[1, 6, 2, 4, 3]}\nPrediction {self.output()}')
+            print(
+                f'Test sequence {[1, 6, 2, 4, 3]}\nPrediction {self.output()}')
 
     def output(self):
         return [self.input[np.argmax(i)] for i in self.out]
 
     def debug(self):
         with open('activations.log', 'w') as f:
-            print(f'Encoder activations:\n{np.array(self.encoder.activations)}', file=f)
-            print(f'Decoder activations:\n{np.array(self.decoder.activations)}', file=f)
+            print(
+                f'Encoder activations:\n{np.array(self.encoder.activations)}', file=f)
+            print(
+                f'Decoder activations:\n{np.array(self.decoder.activations)}', file=f)
             print(f'Predictions: {np.array(self.decoder.predictions)}', file=f)

@@ -105,13 +105,13 @@ class Decoder:
             # print(encoded_activations.shape)
             for enc_act in encoded_activations:
                 uij = self.weights['v'] @ np.tanh(
-                    self.weights['W1'] @ enc_act + 
+                    self.weights['W1'] @ enc_act +
                     self.weights['W2'] @ activation
                 )
                 ui.append(uij.item())
 
             prediction = softmax(
-                np.array(ui) 
+                np.array(ui)
                 / self.temperature
             )
             self.predictions.append(prediction)
@@ -135,11 +135,13 @@ class Decoder:
         dW1 = np.zeros([CONTEXT_LEN, 1])
         dW2 = np.zeros([CONTEXT_LEN, 1])
 
-        self.gradients['encoder_activations'] = [np.zeros([CONTEXT_LEN, 1]) for i in range(self.timesteps)]
+        self.gradients['encoder_activations'] = [
+            np.zeros([CONTEXT_LEN, 1]) for i in range(self.timesteps)]
 
         for i in reversed(range(self.timesteps)):
             expected = OHE(ground_truth[i], self.timesteps).reshape(-1, 1)
-            dui = (self.predictions[i].reshape(-1, 1) - expected) / self.temperature
+            dui = (self.predictions[i].reshape(-1, 1) -
+                   expected) / self.temperature
             ddi = np.zeros([CONTEXT_LEN, 1])
             dvj = np.zeros([1, CONTEXT_LEN])
             dW1j = np.zeros([CONTEXT_LEN, 1])
@@ -147,17 +149,20 @@ class Decoder:
 
             for j, duij in enumerate(dui):
                 inner = np.tanh(self.weights['W1'] @ encoded_activations[j] +
-                    self.weights['W2'] @ self.activations[i])
+                                self.weights['W2'] @ self.activations[i])
                 dvj += duij.item() * inner.T
-                dW1j += duij.item() * (1 - np.square(inner)) * encoded_activations[j]
+                dW1j += duij.item() * (1 - np.square(inner)) * \
+                    encoded_activations[j]
                 dW2i += duij.item() * (1 - np.square(inner))
                 ddi += duij.item() * (1 - np.square(inner))
-                self.gradients['encoder_activations'][j] += duij.item() * (1 - np.square(inner))
+                self.gradients['encoder_activations'][j] += duij.item() * \
+                    (1 - np.square(inner))
 
             dW1 += dW1j
             dW2 += dW2i * self.activations[i]
             dv += dvj
-            ddi = ((self.weights['W2'] @ self.weights['v'].T) * ddi) + dactiv_prev
+            ddi = ((self.weights['W2'] @ self.weights['v'].T)
+                   * ddi) + dactiv_prev
 
             grad = self.cell.backprop(
                 ddi,
@@ -168,12 +173,13 @@ class Decoder:
             dcontext = grad['context_prev']
             dactiv_prev = grad['activ_prev']
             self.update_grads(grad)
-        
+
         self.gradients['weights_W1'] = dW1 @ self.weights['v']
         self.gradients['weights_W2'] = dW2 @ self.weights['v']
         self.gradients['weights_v'] = dv
         self.gradients['encoder_activations'] = list(
-            map(lambda x: x * (self.weights['W1'] @ self.weights['v'].T), self.gradients['encoder_activations'])
+            map(lambda x: x * (self.weights['W1'] @ self.weights['v'].T),
+                self.gradients['encoder_activations'])
         )
 
         return dactiv_prev, dcontext, self.gradients['encoder_activations']
@@ -244,7 +250,6 @@ class Decoder:
             'bias_y': np.zeros([self.output_len, 1])
         }
 
-
     def get_activations(self):
         return self.contexts
 
@@ -257,7 +262,7 @@ class Decoder:
         except Exception:
             pass
 
-    def apply_gradients(self, timestep, learning_rate=1e-3, momentum=0.9, beta = 0.999, epsilon = 1e-8):
+    def apply_gradients(self, timestep, learning_rate=1e-3, momentum=0.9, beta=0.999, epsilon=1e-8):
         for k, v in self.weights.items():
             grad_key = 'weights_' + k
             self.accumulated_velocity[grad_key] = momentum * self.accumulated_velocity[grad_key] + \
@@ -266,8 +271,10 @@ class Decoder:
                 (1 - beta) * np.square(self.gradients[grad_key])
 
             # Correction terms
-            v_corrected = self.accumulated_velocity[grad_key] / (1 - (momentum ** timestep))
-            s_corrected = self.accumulated_S[grad_key] / (1 - (beta ** timestep))
+            v_corrected = self.accumulated_velocity[grad_key] / (
+                1 - (momentum ** timestep))
+            s_corrected = self.accumulated_S[grad_key] / \
+                (1 - (beta ** timestep))
 
             self.weights[k] -= learning_rate * v_corrected / np.sqrt(
                 s_corrected + epsilon
@@ -281,8 +288,10 @@ class Decoder:
                 (1 - beta) * np.square(self.gradients[grad_key])
 
             # Correction terms
-            v_corrected = self.accumulated_velocity[grad_key] / (1 - (momentum ** timestep))
-            s_corrected = self.accumulated_S[grad_key] / (1 - (beta ** timestep))
+            v_corrected = self.accumulated_velocity[grad_key] / (
+                1 - (momentum ** timestep))
+            s_corrected = self.accumulated_S[grad_key] / \
+                (1 - (beta ** timestep))
 
             self.biases[k] -= learning_rate * v_corrected / np.sqrt(
                 s_corrected + epsilon

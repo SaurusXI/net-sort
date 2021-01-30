@@ -15,9 +15,10 @@ class Encoder:
         self.weights = {
             'update': np.random.default_rng().uniform(-limit, limit, [CONTEXT_LEN, CONTEXT_LEN + input_len]),
             'forget': np.random.default_rng().uniform(-limit, limit, [CONTEXT_LEN, CONTEXT_LEN + input_len]),
-            'candidate': np.random.default_rng().uniform(-limit / 4, limit / 4, 
-                [CONTEXT_LEN, CONTEXT_LEN + input_len]
-            ),
+            'candidate': np.random.default_rng().uniform(-limit / 4, limit / 4,
+                                                         [CONTEXT_LEN,
+                                                             CONTEXT_LEN + input_len]
+                                                         ),
             'output': np.random.default_rng().uniform(-limit, limit, [CONTEXT_LEN, CONTEXT_LEN + input_len])
         }
         self.biases = {
@@ -169,7 +170,7 @@ class Encoder:
             'bias_candidate': np.zeros(bias_shape),
         }
 
-    def apply_gradients(self, timestep, learning_rate=1e-3, momentum=0.9, beta = 0.999, epsilon = 1e-8):
+    def apply_gradients(self, timestep, learning_rate=1e-3, momentum=0.9, beta=0.999, epsilon=1e-8):
         for k, v in self.weights.items():
             grad_key = 'weights_' + k
             self.accumulated_velocity[grad_key] = momentum * self.accumulated_velocity[grad_key] + \
@@ -178,8 +179,10 @@ class Encoder:
                 (1 - beta) * np.square(self.gradients[grad_key])
 
             # Correction terms
-            v_corrected = self.accumulated_velocity[grad_key] / (1 - (momentum ** timestep))
-            s_corrected = self.accumulated_S[grad_key] / (1 - (beta ** timestep))
+            v_corrected = self.accumulated_velocity[grad_key] / (
+                1 - (momentum ** timestep))
+            s_corrected = self.accumulated_S[grad_key] / \
+                (1 - (beta ** timestep))
 
             self.weights[k] -= learning_rate * v_corrected / np.sqrt(
                 s_corrected + epsilon
@@ -193,8 +196,10 @@ class Encoder:
                 (1 - beta) * np.square(self.gradients[grad_key])
 
             # Correction terms
-            v_corrected = self.accumulated_velocity[grad_key] / (1 - (momentum ** timestep))
-            s_corrected = self.accumulated_S[grad_key] / (1 - (beta ** timestep))
+            v_corrected = self.accumulated_velocity[grad_key] / (
+                1 - (momentum ** timestep))
+            s_corrected = self.accumulated_S[grad_key] / \
+                (1 - (beta ** timestep))
 
             self.biases[k] -= learning_rate * v_corrected / np.sqrt(
                 s_corrected + epsilon
