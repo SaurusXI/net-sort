@@ -4,14 +4,12 @@ from scipy.stats import entropy
 
 def OHE(val, len_output):
     val = np.array(val)
-    res = np.eye(len_output)[np.array(val).reshape(-1) - 1]
+    res = np.eye(len_output)[np.array(val).reshape(-1)]
     return res.reshape(list(val.shape)+[len_output])
 
 
 def cross_entropy(predictions, targets):
     predictions = np.array(predictions)[:, :, 0]
-    # print(predictions.shape)
-    # print(targets.shape)
     return entropy(predictions) + entropy(predictions, targets)
 
 
@@ -23,7 +21,6 @@ def relu(x):
 def categorical_cross_entropy(predictions, targets, epsilon=1e-12):
     predictions = np.clip(predictions, epsilon, 1. - epsilon)
     N = predictions.shape[0]
-    predictions = predictions[:, :, 0]
     ce = -np.sum(targets*np.log(predictions+1e-9))/N
     return ce
 
